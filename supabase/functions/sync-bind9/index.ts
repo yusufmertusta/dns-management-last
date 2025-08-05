@@ -176,7 +176,8 @@ ns2     IN      A       192.168.1.2
   return zoneFile
 }
 
-/* Deno.cron("Reload BIND9 every 5 minutes", "*/5 * * * *", () => {
-  console.log("Scheduled BIND9 reload check")
-  // In a real implementation, you could check for changes and reload BIND9
-}) */
+// Future enhancement: Add scheduled BIND9 reload functionality
+// Deno.cron("Reload BIND9 every 5 minutes", "0 */5 * * * *", () => {
+//   console.log("Scheduled BIND9 reload check")
+//   // In a real implementation, you could check for changes and reload BIND9
+// })
