@@ -132,6 +132,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       get_domain_stats: {
         Args: { domain_uuid: string }
         Returns: Json
