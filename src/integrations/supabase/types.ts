@@ -94,6 +94,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          plan: Database["public"]["Enums"]["user_plan"]
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["user_plan"]
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["user_plan"]
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -103,9 +136,18 @@ export type Database = {
         Args: { domain_uuid: string }
         Returns: Json
       }
+      get_system_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_user_stats: {
+        Args: { target_user_id?: string }
+        Returns: Json
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_plan: "basic" | "pro" | "max"
+      user_role: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -232,6 +274,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_plan: ["basic", "pro", "max"],
+      user_role: ["user", "admin"],
+    },
   },
 } as const
