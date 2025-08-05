@@ -7,37 +7,54 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import dnsHero from "@/assets/dns-hero.jpg";
 
 const Index = () => {
-  const [session, setSession] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        navigate('/dashboard');
+      }
       setLoading(false);
-    });
+    };
+
+    getSession();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        navigate('/dashboard');
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (!session) {
+  if (!user) {
     return <AuthForm />;
   }
 
-  return <DashboardLayout />;
+  // If user is logged in but somehow still on index, redirect to dashboard
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold">Redirecting to dashboard...</h2>
+      </div>
+    </div>
+  );
 };
 
 export default Index;

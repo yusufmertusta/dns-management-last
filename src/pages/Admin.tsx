@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { CreateUserDialog } from "@/components/admin/CreateUserDialog";
 import { 
   Users, 
   Globe, 
@@ -131,23 +132,27 @@ export const Admin = () => {
         </p>
       </div>
 
-      <div className="flex gap-4 border-b">
-        <Button
-          variant={activeTab === 'users' ? 'default' : 'ghost'}
-          onClick={() => setActiveTab('users')}
-          className="flex items-center gap-2"
-        >
-          <Users className="h-4 w-4" />
-          Users ({users.length})
-        </Button>
-        <Button
-          variant={activeTab === 'domains' ? 'default' : 'ghost'}
-          onClick={() => setActiveTab('domains')}
-          className="flex items-center gap-2"
-        >
-          <Globe className="h-4 w-4" />
-          Domains ({domains.length})
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex gap-4 border-b">
+          <Button
+            variant={activeTab === 'users' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('users')}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Users ({users.length})
+          </Button>
+          <Button
+            variant={activeTab === 'domains' ? 'default' : 'ghost'}
+            onClick={() => setActiveTab('domains')}
+            className="flex items-center gap-2"
+          >
+            <Globe className="h-4 w-4" />
+            Domains ({domains.length})
+          </Button>
+        </div>
+        
+        {activeTab === 'users' && <CreateUserDialog />}
       </div>
 
       {activeTab === 'users' && (

@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
+import { createUserProfile } from "@/lib/auth";
 
 export const AuthForm = () => {
   const [loading, setLoading] = useState(false);
@@ -20,12 +21,17 @@ export const AuthForm = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Create or get user profile
+      if (data.user) {
+        await createUserProfile(data.user);
+      }
 
       toast({
         title: "Welcome back!",
@@ -82,7 +88,7 @@ export const AuthForm = () => {
             DNS Manager
           </CardTitle>
           <CardDescription>
-            Manage your domains and DNS records with ease
+            Sign in to manage your domains and DNS records
           </CardDescription>
         </CardHeader>
         
