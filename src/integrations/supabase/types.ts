@@ -14,13 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      dns_records: {
+        Row: {
+          created_at: string
+          domain_id: string
+          id: string
+          name: string
+          port: number | null
+          priority: number | null
+          ttl: number | null
+          type: string
+          updated_at: string
+          value: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          domain_id: string
+          id?: string
+          name: string
+          port?: number | null
+          priority?: number | null
+          ttl?: number | null
+          type: string
+          updated_at?: string
+          value: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          domain_id?: string
+          id?: string
+          name?: string
+          port?: number | null
+          priority?: number | null
+          ttl?: number | null
+          type?: string
+          updated_at?: string
+          value?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dns_records_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      domains: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_domain_stats: {
+        Args: { domain_uuid: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
