@@ -2,41 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* DNS Management System Design System - Technical Blue Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 213 27% 97%;
+    --foreground: 218 29% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 218 29% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 218 29% 13%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 214 84% 47%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 214 84% 67%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 213 27% 94%;
+    --secondary-foreground: 218 29% 23%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 213 27% 94%;
+    --muted-foreground: 218 13% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 207 85% 56%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 142 76% 36%;
+    --success-foreground: 138 62% 96%;
+
+    --warning: 43 96% 56%;
+    --warning-foreground: 25 95% 7%;
+
+    --border: 214 32% 89%;
+    --input: 214 32% 91%;
+    --ring: 214 84% 47%;
 
     --radius: 0.5rem;
+
+    /* DNS specific colors */
+    --dns-primary: 214 84% 47%;
+    --dns-secondary: 207 85% 56%;
+    --dns-danger: 0 84% 60%;
+    --dns-success: 142 76% 36%;
+    --dns-warning: 43 96% 56%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(214 84% 47%), hsl(207 85% 56%));
+    --gradient-subtle: linear-gradient(180deg, hsl(213 27% 97%), hsl(213 27% 94%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(213 27% 97%));
+
+    /* Shadows */
+    --shadow-elegant: 0 4px 12px -2px hsl(214 84% 47% / 0.08);
+    --shadow-hover: 0 8px 25px -5px hsl(214 84% 47% / 0.15);
+    --shadow-active: 0 2px 8px -1px hsl(214 84% 47% / 0.12);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
