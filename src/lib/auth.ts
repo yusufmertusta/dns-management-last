@@ -6,13 +6,13 @@ export const createUserProfile = async (user: any) => {
     .from('profiles')
     .select('id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (existingProfile) {
     return existingProfile;
   }
 
-  // Create new profile
+  // Create new profile if it doesn't exist
   const { data, error } = await supabase
     .from('profiles')
     .insert({
@@ -27,7 +27,10 @@ export const createUserProfile = async (user: any) => {
 
   if (error) {
     console.error('Error creating profile:', error);
-    throw error;
+    // Don't throw error if profile already exists
+    if (error.code !== '23505') {
+      throw error;
+    }
   }
 
   return data;
