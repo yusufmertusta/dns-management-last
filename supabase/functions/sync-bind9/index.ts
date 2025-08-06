@@ -37,21 +37,40 @@ serve(async (req) => {
       const zoneContent = await generateZoneFile(domain, [])
       console.log(`Generated zone file for ${domain}:`, zoneContent)
       
-      // In a real implementation, you would:
-      // 1. Write the zone file to the BIND9 zones directory
-      // 2. Update the named.conf file to include the new zone
-      // 3. Reload BIND9 configuration
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Domain ${domain} added to BIND9 configuration`,
-          zoneContent 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      try {
+        // Write zone file to BIND9 zones directory
+        await writeZoneFile(domain, zoneContent)
+        
+        // Add zone to named.conf.local
+        await addZoneToNamedConf(domain)
+        
+        // Reload BIND9 configuration
+        await reloadBind9()
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Domain ${domain} successfully added to BIND9 and configuration reloaded`,
+            zoneContent 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      } catch (error) {
+        console.error(`Failed to add domain ${domain} to BIND9:`, error)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Failed to add domain to BIND9: ${error.message}`,
+            zoneContent // Still return zone content for debugging
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          },
+        )
+      }
     }
 
     if (action === 'update_domain') {
@@ -75,39 +94,74 @@ serve(async (req) => {
       const zoneContent = await generateZoneFile(domain, records || [])
       console.log(`Updated zone file for ${domain}:`, zoneContent)
 
-      // In a real implementation, you would:
-      // 1. Write the updated zone file to the BIND9 zones directory
-      // 2. Reload BIND9 configuration with rndc reload
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Domain ${domain} updated in BIND9 configuration`,
-          zoneContent 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      try {
+        // Write updated zone file to BIND9 zones directory
+        await writeZoneFile(domain, zoneContent)
+        
+        // Reload BIND9 configuration
+        await reloadBind9()
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Domain ${domain} successfully updated in BIND9 and configuration reloaded`,
+            zoneContent 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      } catch (error) {
+        console.error(`Failed to update domain ${domain} in BIND9:`, error)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Failed to update domain in BIND9: ${error.message}`,
+            zoneContent // Still return zone content for debugging
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          },
+        )
+      }
     }
 
     if (action === 'delete_domain') {
       console.log(`Deleting domain ${domain} from BIND9`)
       
-      // In a real implementation, you would:
-      // 1. Remove the zone file from the BIND9 zones directory
-      // 2. Update the named.conf file to remove the zone
-      // 3. Reload BIND9 configuration
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Domain ${domain} removed from BIND9 configuration` 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      )
+      try {
+        // Remove zone file from BIND9 zones directory
+        await deleteZoneFile(domain)
+        
+        // Remove zone from named.conf.local
+        await removeZoneFromNamedConf(domain)
+        
+        // Reload BIND9 configuration
+        await reloadBind9()
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: `Domain ${domain} successfully removed from BIND9 and configuration reloaded` 
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          },
+        )
+      } catch (error) {
+        console.error(`Failed to delete domain ${domain} from BIND9:`, error)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Failed to delete domain from BIND9: ${error.message}`
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          },
+        )
+      }
     }
 
     throw new Error('Invalid action')
@@ -176,8 +230,133 @@ ns2     IN      A       192.168.1.2
   return zoneFile
 }
 
-// Future enhancement: Add scheduled BIND9 reload functionality
-// Deno.cron("Reload BIND9 every 5 minutes", "0 */5 * * * *", () => {
-//   console.log("Scheduled BIND9 reload check")
-//   // In a real implementation, you could check for changes and reload BIND9
-// })
+// BIND9 Integration Functions
+async function writeZoneFile(domain: string, content: string): Promise<void> {
+  const zonePath = `/etc/bind/zones/${domain}.zone`
+  const command = new Deno.Command("sudo", {
+    args: ["tee", zonePath],
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
+  })
+  
+  const child = command.spawn()
+  const writer = child.stdin.getWriter()
+  await writer.write(new TextEncoder().encode(content))
+  await writer.close()
+  
+  const { code, stderr } = await child.output()
+  if (code !== 0) {
+    const error = new TextDecoder().decode(stderr)
+    throw new Error(`Failed to write zone file: ${error}`)
+  }
+  
+  // Set proper permissions
+  const chmodCommand = new Deno.Command("sudo", {
+    args: ["chmod", "644", zonePath]
+  })
+  await chmodCommand.output()
+}
+
+async function deleteZoneFile(domain: string): Promise<void> {
+  const zonePath = `/etc/bind/zones/${domain}.zone`
+  const command = new Deno.Command("sudo", {
+    args: ["rm", "-f", zonePath]
+  })
+  
+  const { code, stderr } = await command.output()
+  if (code !== 0) {
+    const error = new TextDecoder().decode(stderr)
+    throw new Error(`Failed to delete zone file: ${error}`)
+  }
+}
+
+async function addZoneToNamedConf(domain: string): Promise<void> {
+  const zoneConfig = `
+zone "${domain}" {
+    type master;
+    file "/etc/bind/zones/${domain}.zone";
+    allow-update { none; };
+};
+`
+  
+  const command = new Deno.Command("sudo", {
+    args: ["tee", "-a", "/etc/bind/named.conf.local"],
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
+  })
+  
+  const child = command.spawn()
+  const writer = child.stdin.getWriter()
+  await writer.write(new TextEncoder().encode(zoneConfig))
+  await writer.close()
+  
+  const { code, stderr } = await child.output()
+  if (code !== 0) {
+    const error = new TextDecoder().decode(stderr)
+    throw new Error(`Failed to add zone to named.conf: ${error}`)
+  }
+}
+
+async function removeZoneFromNamedConf(domain: string): Promise<void> {
+  // Read current named.conf.local
+  const readCommand = new Deno.Command("sudo", {
+    args: ["cat", "/etc/bind/named.conf.local"]
+  })
+  
+  const { code: readCode, stdout, stderr: readStderr } = await readCommand.output()
+  if (readCode !== 0) {
+    const error = new TextDecoder().decode(readStderr)
+    throw new Error(`Failed to read named.conf.local: ${error}`)
+  }
+  
+  let content = new TextDecoder().decode(stdout)
+  
+  // Remove the zone block for this domain
+  const zoneRegex = new RegExp(`zone\\s+"${domain}"\\s*{[^}]*};?\\s*`, 'g')
+  content = content.replace(zoneRegex, '')
+  
+  // Write back the updated content
+  const writeCommand = new Deno.Command("sudo", {
+    args: ["tee", "/etc/bind/named.conf.local"],
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
+  })
+  
+  const child = writeCommand.spawn()
+  const writer = child.stdin.getWriter()
+  await writer.write(new TextEncoder().encode(content))
+  await writer.close()
+  
+  const { code: writeCode, stderr: writeStderr } = await child.output()
+  if (writeCode !== 0) {
+    const error = new TextDecoder().decode(writeStderr)
+    throw new Error(`Failed to update named.conf.local: ${error}`)
+  }
+}
+
+async function reloadBind9(): Promise<void> {
+  // First check configuration
+  const checkCommand = new Deno.Command("sudo", {
+    args: ["named-checkconf"]
+  })
+  
+  const { code: checkCode, stderr: checkStderr } = await checkCommand.output()
+  if (checkCode !== 0) {
+    const error = new TextDecoder().decode(checkStderr)
+    throw new Error(`BIND9 configuration check failed: ${error}`)
+  }
+  
+  // Reload BIND9
+  const reloadCommand = new Deno.Command("sudo", {
+    args: ["rndc", "reload"]
+  })
+  
+  const { code: reloadCode, stderr: reloadStderr } = await reloadCommand.output()
+  if (reloadCode !== 0) {
+    const error = new TextDecoder().decode(reloadStderr)
+    throw new Error(`Failed to reload BIND9: ${error}`)
+  }
+}
