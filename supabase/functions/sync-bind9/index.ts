@@ -38,14 +38,8 @@ serve(async (req) => {
       console.log(`Generated zone file for ${domain}:`, zoneContent)
       
       try {
-        // Write zone file to BIND9 zones directory
-        await writeZoneFile(domain, zoneContent)
-        
-        // Add zone to named.conf.local
-        await addZoneToNamedConf(domain)
-        
-        // Reload BIND9 configuration
-        await reloadBind9()
+        // Sync with local BIND9 via webhook
+        await syncWithLocalBind9('add_domain', domain, [])
         
         return new Response(
           JSON.stringify({ 
@@ -95,11 +89,8 @@ serve(async (req) => {
       console.log(`Updated zone file for ${domain}:`, zoneContent)
 
       try {
-        // Write updated zone file to BIND9 zones directory
-        await writeZoneFile(domain, zoneContent)
-        
-        // Reload BIND9 configuration
-        await reloadBind9()
+        // Sync with local BIND9 via webhook
+        await syncWithLocalBind9('update_domain', domain, records || [])
         
         return new Response(
           JSON.stringify({ 
@@ -131,14 +122,8 @@ serve(async (req) => {
       console.log(`Deleting domain ${domain} from BIND9`)
       
       try {
-        // Remove zone file from BIND9 zones directory
-        await deleteZoneFile(domain)
-        
-        // Remove zone from named.conf.local
-        await removeZoneFromNamedConf(domain)
-        
-        // Reload BIND9 configuration
-        await reloadBind9()
+        // Sync with local BIND9 via webhook
+        await syncWithLocalBind9('delete_domain', domain)
         
         return new Response(
           JSON.stringify({ 
@@ -230,32 +215,31 @@ ns2     IN      A       192.168.1.2
   return zoneFile
 }
 
-// BIND9 Integration Functions
-async function writeZoneFile(domain: string, content: string): Promise<void> {
-  const zonePath = `/etc/bind/zones/${domain}.zone`
-  const command = new Deno.Command("sudo", {
-    args: ["tee", zonePath],
-    stdin: "piped",
-    stdout: "piped",
-    stderr: "piped",
-  })
+// BIND9 Integration via Webhook (for local/WSL setups)
+async function syncWithLocalBind9(action: string, domain: string, records?: DNSRecord[]): Promise<void> {
+  const webhookUrl = Deno.env.get('BIND9_WEBHOOK_URL') || 'http://localhost:3001/sync-bind9';
   
-  const child = command.spawn()
-  const writer = child.stdin.getWriter()
-  await writer.write(new TextEncoder().encode(content))
-  await writer.close()
+  const payload = {
+    action,
+    domain,
+    records: records || []
+  };
   
-  const { code, stderr } = await child.output()
-  if (code !== 0) {
-    const error = new TextDecoder().decode(stderr)
-    throw new Error(`Failed to write zone file: ${error}`)
+  const response = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`BIND9 webhook failed: ${error}`);
   }
   
-  // Set proper permissions
-  const chmodCommand = new Deno.Command("sudo", {
-    args: ["chmod", "644", zonePath]
-  })
-  await chmodCommand.output()
+  const result = await response.json();
+  console.log('BIND9 sync result:', result);
 }
 
 async function deleteZoneFile(domain: string): Promise<void> {
