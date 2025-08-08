@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getUserFromToken, logout } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, User, Settings } from "lucide-react";
@@ -21,22 +21,18 @@ export const DashboardLayout = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
+    const user = getUserFromToken();
+    setUser(user);
   }, []);
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      logout();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
+      window.location.reload();
     } catch (error: any) {
       toast({
         variant: "destructive",

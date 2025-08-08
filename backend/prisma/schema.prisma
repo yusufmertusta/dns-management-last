@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  domains   Domain[]
+  createdAt DateTime @default(now())
+}
+
+model Domain {
+  id        String      @id @default(uuid())
+  name      String      @unique
+  user      User        @relation(fields: [userId], references: [id])
+  userId    String
+  records   DNSRecord[]
+  createdAt DateTime    @default(now())
+}
+
+model DNSRecord {
+  id        String   @id @default(uuid())
+  domain    Domain   @relation(fields: [domainId], references: [id])
+  domainId  String
+  type      String
+  name      String
+  value     String
+  ttl       Int      @default(3600)
+  createdAt DateTime @default(now())
+}

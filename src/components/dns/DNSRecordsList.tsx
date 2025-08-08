@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Globe, Database } from "lucide-react";
 import { AddDNSRecordDialog } from "./AddDNSRecordDialog";
 import { EditDNSRecordDialog } from "./EditDNSRecordDialog";
+import { getDNSRecords, deleteDNSRecord } from "@/lib/api";
 
 interface DNSRecord {
   id: string;
@@ -42,15 +42,8 @@ export const DNSRecordsList = ({ domain }: DNSRecordsListProps) => {
 
   const fetchRecords = async () => {
     try {
-      const { data, error } = await supabase
-        .from("dns_records")
-        .select("*")
-        .eq("domain_id", domain.id)
-        .order("type", { ascending: true })
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setRecords(data || []);
+      const data = await getDNSRecords(domain.id);
+      setRecords(data);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -66,28 +59,12 @@ export const DNSRecordsList = ({ domain }: DNSRecordsListProps) => {
     if (!confirm("Are you sure you want to delete this DNS record?")) {
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from("dns_records")
-        .delete()
-        .eq("id", recordId);
-
-      if (error) throw error;
-
-      // Sync with BIND9
-      await supabase.functions.invoke('sync-bind9', {
-        body: {
-          action: 'update_domain',
-          domain: domain.name,
-        },
-      });
-
+      await deleteDNSRecord(recordId);
       toast({
         title: "Success",
         description: "DNS record deleted successfully",
       });
-
       fetchRecords();
     } catch (error: any) {
       toast({

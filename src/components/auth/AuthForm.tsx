@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,36 +6,25 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock } from "lucide-react";
-import { createUserProfile } from "@/lib/auth";
+import { login, register } from "@/lib/api";
 
 export const AuthForm = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [fullName, setFullName] = useState(""); // Not used in backend, but kept for UI
   const { toast } = useToast();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Create or get user profile
-      if (data.user) {
-        await createUserProfile(data.user);
-      }
-
+      await login(email, password);
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
+      window.location.reload(); // Reload to update session state
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -51,23 +39,11 @@ export const AuthForm = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          },
-        },
-      });
-
-      if (error) throw error;
-
+      await register(email, password);
       toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link.",
+        title: "Registration successful",
+        description: "You can now sign in with your credentials.",
       });
     } catch (error: any) {
       toast({

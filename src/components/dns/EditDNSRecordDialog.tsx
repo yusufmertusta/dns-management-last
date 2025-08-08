@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { updateDNSRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,70 +44,40 @@ const DNS_RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV']
 export const EditDNSRecordDialog = ({ open, onOpenChange, domain, record, onRecordUpdated }: EditDNSRecordDialogProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    value: '',
-    ttl: 300,
-    priority: '',
-    weight: '',
-    port: '',
+    name: record.name,
+    type: record.type,
+    value: record.value,
+    ttl: record.ttl,
+    priority: record.priority?.toString() || '',
+    weight: record.weight?.toString() || '',
+    port: record.port?.toString() || '',
   });
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (record) {
-      setFormData({
-        name: record.name,
-        type: record.type,
-        value: record.value,
-        ttl: record.ttl,
-        priority: record.priority?.toString() || '',
-        weight: record.weight?.toString() || '',
-        port: record.port?.toString() || '',
-      });
-    }
-  }, [record]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const updateData: any = {
+      const recordData: any = {
         name: formData.name.trim(),
         type: formData.type,
         value: formData.value.trim(),
         ttl: formData.ttl,
-        priority: null,
-        weight: null,
-        port: null,
       };
 
       // Add optional fields for MX and SRV records
       if (formData.type === 'MX' && formData.priority) {
-        updateData.priority = parseInt(formData.priority);
+        recordData.priority = parseInt(formData.priority);
       }
       
       if (formData.type === 'SRV') {
-        if (formData.priority) updateData.priority = parseInt(formData.priority);
-        if (formData.weight) updateData.weight = parseInt(formData.weight);
-        if (formData.port) updateData.port = parseInt(formData.port);
+        if (formData.priority) recordData.priority = parseInt(formData.priority);
+        if (formData.weight) recordData.weight = parseInt(formData.weight);
+        if (formData.port) recordData.port = parseInt(formData.port);
       }
 
-      const { error } = await supabase
-        .from("dns_records")
-        .update(updateData)
-        .eq("id", record.id);
-
-      if (error) throw error;
-
-      // Sync with BIND9
-      await supabase.functions.invoke('sync-bind9', {
-        body: {
-          action: 'update_domain',
-          domain: domain.name,
-        },
-      });
+      await updateDNSRecord(record.id, recordData);
 
       toast({
         title: "Success",
@@ -136,7 +106,7 @@ export const EditDNSRecordDialog = ({ open, onOpenChange, domain, record, onReco
         <DialogHeader>
           <DialogTitle>Edit DNS Record</DialogTitle>
           <DialogDescription>
-            Update the DNS record for {domain.name}
+            Update DNS record for {domain.name}
           </DialogDescription>
         </DialogHeader>
         
@@ -157,7 +127,7 @@ export const EditDNSRecordDialog = ({ open, onOpenChange, domain, record, onReco
                 <Label htmlFor="type">Type</Label>
                 <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {DNS_RECORD_TYPES.map((type) => (
@@ -252,10 +222,9 @@ export const EditDNSRecordDialog = ({ open, onOpenChange, domain, record, onReco
             </Button>
             <Button
               type="submit"
-              variant="dns"
               disabled={loading || !formData.name || !formData.type || !formData.value}
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Record
             </Button>
           </DialogFooter>

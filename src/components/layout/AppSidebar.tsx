@@ -1,112 +1,60 @@
 import { useState, useEffect } from "react";
 import { useLocation, NavLink } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { getUserFromToken } from "@/lib/api";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  Home, 
   Globe, 
   Settings, 
-  Shield, 
-  User,
-  BarChart3
+  BarChart3, 
+  Users, 
+  Database, 
+  Crown,
+  LogOut
 } from "lucide-react";
+import { logout } from "@/lib/api";
 
-interface Profile {
-  plan: string;
-  role: string;
-  full_name: string;
-  email: string;
-}
-
-const navigation = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Domains", url: "/domains", icon: Globe },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Profile", url: "/profile", icon: User },
-  { title: "Settings", url: "/settings", icon: Settings },
-];
-
-const adminNavigation = [
-  { title: "Admin Panel", url: "/admin", icon: Shield },
-];
-
-export function AppSidebar() {
-  const { state } = useSidebar();
-  const location = useLocation();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const currentPath = location.pathname;
-  const collapsed = state === "collapsed";
+export const AppSidebar = () => {
+  const [user, setUser] = useState<any>(null);
+  const { toast } = useToast();
+  const { isOpen } = useSidebar();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('plan, role, full_name, email')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (data) {
-          setProfile(data);
-        }
-      }
-    };
-
-    fetchProfile();
+    const user = getUserFromToken();
+    setUser(user);
   }, []);
 
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
-
-  const getPlanColor = (plan: string) => {
-    switch (plan) {
-      case 'basic': return 'bg-gray-100 text-gray-800';
-      case 'pro': return 'bg-blue-100 text-blue-800';
-      case 'max': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleSignOut = async () => {
+    try {
+      logout();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+      window.location.reload();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
     }
   };
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarHeader className="border-b p-4">
-        {!collapsed && (
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-              <Globe className="h-4 w-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-sm">DNS Manager</h2>
-              {profile && (
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className={`text-xs ${getPlanColor(profile.plan)}`}>
-                    {profile.plan.toUpperCase()}
-                  </Badge>
-                  {profile.role === 'admin' && (
-                    <Badge variant="destructive" className="text-xs">
-                      ADMIN
-                    </Badge>
-                  )}
-                </div>
-              )}
-            </div>
+    <Sidebar>
+      <SidebarHeader className="border-b px-6 py-4">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+            <span className="text-white text-sm font-bold">DNS</span>
           </div>
-        )}
+          <div>
+            <h2 className="text-lg font-semibold">DNS Manager</h2>
+            <p className="text-xs text-muted-foreground">Domain Management</p>
+          </div>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -114,49 +62,85 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigation.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
+              <SidebarMenuItem asChild>
+                <NavLink to="/dashboard" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Dashboard
+                </NavLink>
+              </SidebarMenuItem>
+              <SidebarMenuItem asChild>
+                <NavLink to="/domains" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Domains
+                </NavLink>
+              </SidebarMenuItem>
+              <SidebarMenuItem asChild>
+                <NavLink to="/dns-records" className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  DNS Records
+                </NavLink>
+              </SidebarMenuItem>
+              {user?.isAdmin && (
+                <SidebarMenuItem asChild>
+                  <NavLink to="/admin" className="flex items-center gap-2">
+                    <Crown className="h-4 w-4" />
+                    Admin Panel
+                  </NavLink>
                 </SidebarMenuItem>
-              ))}
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {profile?.role === 'admin' && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminNavigation.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavCls}>
-                        <item.icon className="h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem asChild>
+                <NavLink to="/profile" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Profile
+                </NavLink>
+              </SidebarMenuItem>
+              <SidebarMenuItem asChild>
+                <NavLink to="/settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </NavLink>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-4">
-        {!collapsed && profile && (
-          <div className="space-y-1">
-            <p className="text-sm font-medium truncate">{profile.full_name}</p>
-            <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-          </div>
-        )}
+      <SidebarFooter className="border-t px-6 py-4">
+        <div className="space-y-4">
+          {user && (
+            <div className="flex items-center gap-2 text-sm">
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                <Users className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{user.email}</p>
+                {user.isAdmin && (
+                  <Badge variant="secondary" className="text-xs">
+                    Admin
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full" 
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
-}
+};

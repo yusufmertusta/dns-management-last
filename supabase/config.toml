@@ -1,4 +1,0 @@
-project_id = "fnibdrtxbrtvobqkqlmu"
-
-[functions.sync-bind9]
-verify_jwt = false

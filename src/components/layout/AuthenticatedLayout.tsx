@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, User } from "lucide-react";
+import { getUserFromToken, logout } from "@/lib/api";
 
 export const AuthenticatedLayout = () => {
   const [user, setUser] = useState<any>(null);
@@ -14,36 +14,21 @@ export const AuthenticatedLayout = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+    const checkSession = () => {
+      const user = getUserFromToken();
+      if (!user) {
         navigate('/');
         return;
       }
-      setUser(session.user);
+      setUser(user);
       setLoading(false);
     };
-
-    getSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
-        navigate('/');
-      } else {
-        setUser(session.user);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    checkSession();
   }, [navigate]);
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      logout();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",

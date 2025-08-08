@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createDomain } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -32,29 +31,7 @@ export const AddDomainDialog = ({ open, onOpenChange, onDomainAdded }: AddDomain
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("Not authenticated");
-      }
-
-      const { error } = await supabase
-        .from("domains")
-        .insert({
-          name: domainName.toLowerCase().trim(),
-          description: description.trim(),
-          user_id: user.id,
-        });
-
-      if (error) throw error;
-
-      // Call the BIND9 sync function
-      await supabase.functions.invoke('sync-bind9', {
-        body: {
-          action: 'add_domain',
-          domain: domainName.toLowerCase().trim(),
-        },
-      });
+      await createDomain(domainName.toLowerCase().trim());
 
       toast({
         title: "Success",
@@ -88,35 +65,35 @@ export const AddDomainDialog = ({ open, onOpenChange, onDomainAdded }: AddDomain
         <DialogHeader>
           <DialogTitle>Add New Domain</DialogTitle>
           <DialogDescription>
-            Add a new domain to your DNS management system. Make sure you own this domain.
+            Add a new domain to your DNS management system
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="domain">Domain Name</Label>
+              <Label htmlFor="domain-name">Domain Name</Label>
               <Input
-                id="domain"
+                id="domain-name"
                 placeholder="example.com"
                 value={domainName}
                 onChange={(e) => setDomainName(e.target.value)}
-                className={!isValidDomain && domainName ? "border-destructive" : ""}
+                required
               />
-              {!isValidDomain && domainName && (
+              {domainName && !isValidDomain && (
                 <p className="text-sm text-destructive">
                   Please enter a valid domain name
                 </p>
               )}
             </div>
+            
             <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
+              <Input
                 id="description"
-                placeholder="Description for this domain..."
+                placeholder="Enter a description for this domain"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={3}
               />
             </div>
           </div>
@@ -132,10 +109,9 @@ export const AddDomainDialog = ({ open, onOpenChange, onDomainAdded }: AddDomain
             </Button>
             <Button
               type="submit"
-              variant="dns"
               disabled={loading || !isValidDomain}
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add Domain
             </Button>
           </DialogFooter>

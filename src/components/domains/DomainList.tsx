@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getDomains, deleteDomain as apiDeleteDomain } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +29,8 @@ export const DomainList = ({ onSelectDomain, selectedDomain }: DomainListProps) 
 
   const fetchDomains = async () => {
     try {
-      const { data, error } = await supabase
-        .from("domains")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setDomains(data || []);
+      const data = await getDomains();
+      setDomains(data);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -51,22 +46,13 @@ export const DomainList = ({ onSelectDomain, selectedDomain }: DomainListProps) 
     if (!confirm("Are you sure you want to delete this domain? This will also delete all DNS records.")) {
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from("domains")
-        .delete()
-        .eq("id", domainId);
-
-      if (error) throw error;
-
+      await apiDeleteDomain(domainId);
       toast({
         title: "Success",
         description: "Domain deleted successfully",
       });
-
       fetchDomains();
-      
       if (selectedDomain?.id === domainId) {
         onSelectDomain(null as any);
       }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createDNSRecord } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +48,6 @@ export const AddDNSRecordDialog = ({ open, onOpenChange, domain, onRecordAdded }
 
     try {
       const recordData: any = {
-        domain_id: domain.id,
         name: formData.name.trim(),
         type: formData.type,
         value: formData.value.trim(),
@@ -66,19 +65,7 @@ export const AddDNSRecordDialog = ({ open, onOpenChange, domain, onRecordAdded }
         if (formData.port) recordData.port = parseInt(formData.port);
       }
 
-      const { error } = await supabase
-        .from("dns_records")
-        .insert(recordData);
-
-      if (error) throw error;
-
-      // Sync with BIND9
-      await supabase.functions.invoke('sync-bind9', {
-        body: {
-          action: 'update_domain',
-          domain: domain.name,
-        },
-      });
+      await createDNSRecord(domain.id, recordData);
 
       toast({
         title: "Success",

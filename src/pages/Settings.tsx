@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +6,7 @@ import { LogOut, Shield, Bell, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { logout } from "@/lib/api";
 
 export const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -16,13 +16,12 @@ export const Settings = () => {
   const handleSignOut = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      logout();
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
+      window.location.reload();
     } catch (error: any) {
       toast({
         variant: "destructive",

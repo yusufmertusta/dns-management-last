@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getUserFromToken } from "@/lib/api";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -12,27 +12,15 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
+    const checkSession = () => {
+      const user = getUserFromToken();
+      setUser(user);
+      if (user) {
         navigate('/dashboard');
       }
       setLoading(false);
     };
-
-    getSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        navigate('/dashboard');
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    checkSession();
   }, [navigate]);
 
   if (loading) {
